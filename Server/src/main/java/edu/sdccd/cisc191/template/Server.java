@@ -2,6 +2,9 @@ package edu.sdccd.cisc191.template;
 
 import java.net.*;
 import java.io.*;
+import java.sql.*;
+import org.json.JSONArray;
+import org.json.JSONObject;
 
 /**
  * This program is a server that takes connection requests on
@@ -21,16 +24,64 @@ public class Server {
 
     public void start(int port) throws Exception {
         serverSocket = new ServerSocket(port);
-        clientSocket = serverSocket.accept();
-        out = new PrintWriter(clientSocket.getOutputStream(), true);
-        in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
+        System.out.println("Server listening on port 4444");
 
-        String inputLine;
-        while ((inputLine = in.readLine()) != null) {
-            CustomerRequest request = CustomerRequest.fromJSON(inputLine);
-            CustomerResponse response = new CustomerResponse(request.getId(), "Jane", "Doe");
-            out.println(CustomerResponse.toJSON(response));
+        clientSocket = serverSocket.accept();
+
+        while (true) {
+            // Accept client connection
+            Socket clientSocket = serverSocket.accept();
+            System.out.println("Client connected: " + clientSocket.getInetAddress());
+
+            // Handle client request
+            handleClientRequest(clientSocket);
         }
+    }
+
+    private static void handleClientRequest(Socket clientSocket) {
+
+        try (Connection connection = Database.getConnection();) {
+            // Create a statement
+            String sql = "SELECT * FROM entries";
+            PreparedStatement ps = connection.prepareStatement(sql);
+            // Execute the SQL query
+            ResultSet resultSet = ps.executeQuery();
+
+            // Convert the ResultSet to a JSON array
+            JSONArray jsonArray = convertResultSetToJson(resultSet);
+
+            // Convert the JSON array to string
+            String jsonResponse = jsonArray.toString();
+
+            // Send JSON response to the client
+            OutputStream outputStream = clientSocket.getOutputStream();
+            outputStream.write(jsonResponse.getBytes());
+
+            // Close the client connection
+            clientSocket.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    private static JSONArray convertResultSetToJson(ResultSet resultSet) throws SQLException {
+        JSONArray jsonArray = new JSONArray();
+        ResultSetMetaData metaData = resultSet.getMetaData();
+        int columnCount = metaData.getColumnCount();
+
+        while (resultSet.next()) {
+            JSONObject jsonObject = new JSONObject();
+
+            for (int i = 1; i <= columnCount; i++) {
+                String columnName = metaData.getColumnName(i);
+                Object columnValue = resultSet.getObject(i);
+                jsonObject.put(columnName, columnValue);
+            }
+
+            jsonArray.put(jsonObject);
+        }
+
+        return jsonArray;
     }
 
     public void stop() throws IOException {
@@ -41,13 +92,10 @@ public class Server {
     }
 
     public static void main(String[] args) {
-        JavaFX javaFX = new JavaFX();
-        javaFX.main(args);
 
         Server server = new Server();
         try {
             server.start(4444);
-            System.out.println("hi there");
             server.stop();
         } catch(Exception e) {
             e.printStackTrace();

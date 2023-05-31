@@ -6,7 +6,6 @@ public class Book implements BookInterface {
     private ArrayList<Entry> entries = new ArrayList<>();
 
     public Book() {
-
     }
 
     public ArrayList<Entry> getEntries() {
@@ -41,6 +40,10 @@ public class Book implements BookInterface {
         entries.remove(entries.indexOf(entry));
     }
 
+    public Entry getEntry(Entry entry) {
+        return entries.get(entries.indexOf(entry));
+    }
+
     public double getTotalExpenses() {
         double total = 0.0;
         for (int i = 0; i < entries.size(); i++) {
@@ -65,5 +68,9 @@ public class Book implements BookInterface {
         double totalExpenses = getTotalExpenses();
         net = totalIncome - totalExpenses;
         return net;
+    }
+
+    public void sort(String field) {
+        QuickSort.quickSort(entries, field, 0, entries.size() - 1);
     }
 }

@@ -13,4 +13,6 @@ public interface BookInterface {
 
     public void removeEntry(Entry entry);
 
+    void sort(String field);
+
 }

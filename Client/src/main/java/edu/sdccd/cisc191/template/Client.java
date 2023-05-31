@@ -27,10 +27,6 @@ public class Client {
         in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
     }
 
-    public CustomerResponse sendRequest() throws Exception {
-        out.println(CustomerRequest.toJSON(new CustomerRequest(1)));
-        return CustomerResponse.fromJSON(in.readLine());
-    }
 
     public void stopConnection() throws IOException {
         in.close();
@@ -38,14 +34,27 @@ public class Client {
         clientSocket.close();
     }
     public static void main(String[] args) {
-        Client client = new Client();
-        try {
-            client.startConnection("127.0.0.1", 4444);
-            System.out.println(client.sendRequest().toString());
-            client.stopConnection();
-        } catch(Exception e) {
+        try (Socket socket = new Socket("127.0.0.1", 4444)) {
+            // Receive JSON response from the server
+            InputStream inputStream = socket.getInputStream();
+            byte[] buffer = new byte[10240];
+            int bytesRead = inputStream.read(buffer);
+
+            String[] jsonResponse = null;
+            if (bytesRead > 0) {
+                jsonResponse = new String[]{new String(buffer, 0, bytesRead)};
+//                System.out.println("Received JSON response:\n" + jsonResponse);
+            }
+
+            JavaFX javaFX = new JavaFX();
+            javaFX.main(jsonResponse);
+
+        } catch (IOException e) {
             e.printStackTrace();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
+
     }
 } //end class Client
 
